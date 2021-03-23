@@ -1,6 +1,6 @@
 body {
     padding: 30px;
-   
+    height: 90vh;
 }
 
 #side {
@@ -8,10 +8,14 @@ body {
    
 }
 
+#header {
+    width: 95vw;
+}
+
 #main {
     width: 83vw;
     height: 72vh;
-    overflow-y: auto;
+    overflow-y: auto
 }
 
 .sidemenu {

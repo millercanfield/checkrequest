@@ -5,10 +5,19 @@ import {
     fetchEmployee,
     fetchMatter,
     fetchClient,
-    fetchTrust
+    fetchTrust,
+    fetchBills,
+    submitCheckRequest,
+    fetchSplit
 } from '../../actions';
 import { MatterSearch } from '../common/MatterSearch';
 import { MatterDetails } from '../common/MatterDetails';
+import moment from 'moment';
+import SplitDetail from './SplitDetail';
+
+const initialPos = {
+    x: 400, y: 400
+};
 
 class IoltaManaged extends React.Component {
     state = {
@@ -23,11 +32,15 @@ class IoltaManaged extends React.Component {
         payableTo: '',
         additionalInfo: '',
         errors: {},
-        type: ''
+        type: 'settlement',
+        bills: [],
+        showBills: false,
+        splitBillDetails: [],
+        showSplitDetail: false
     }
 
     test() {
-        //console.log('state', this.state);
+        console.log('state', this.state);
     }
 
     onMatterSearch = (clientCode, matterCode) => {
@@ -67,13 +80,11 @@ class IoltaManaged extends React.Component {
     };
 
     onOfficeChange = (event) => {
-        console.log(event.target.value);
         this.setState({ selectedOffice: event.target.value }, this.isValid);
     };
 
     onDeptChange = (event) => {
 
-        console.log(event.target.value);
         this.setState({ selectedDept: event.target.value }, this.isValid);
     }
 
@@ -90,7 +101,11 @@ class IoltaManaged extends React.Component {
             payableTo: '',
             additionalInfo: '',
             errors: {},
-            type: ''
+            type: 'settlement',
+            bills: [],
+            showBills: false,
+            splitBillDetails: [],
+            showSplitDetail: false
 
         });
     }
@@ -139,7 +154,16 @@ class IoltaManaged extends React.Component {
     onTypeChange = (event) => {
         const type = event.target.value;
 
-        this.setState({type: type}, this.isValid);
+        if (type === 'miller') {
+            this.props.fetchBills(this.state.client.clientCode, this.state.matter.matterCode)
+                .then(() => {
+
+                    this.setState({ type: type, showBills: type === 'miller' ? true : false, bills: this.props.bills }, this.isValid);
+                })
+        }
+        else {
+            this.setState({ type: type, showBills: type === 'miller' ? true : false }, this.isValid);
+        }
     }
 
     onSubmit = () => {
@@ -149,12 +173,107 @@ class IoltaManaged extends React.Component {
             return;
         }
 
-        //TODO: post to server for processing
-        console.log('state', this.state);
+        const data = JSON.stringify(this.state);
 
-        this.onBack();
-        toastr.success('Successfully submitted form to AP')
+        this.props.submitCheckRequest('iolta', data)
+            .then(() => {
+                this.onBack();
+                toastr.success('Successfully submitted form to AP')
+            })
+            .catch(error => {
+                toastr.error(error);
+            });
     }
+
+    onBillSelectChange = (bill) => {
+        let bills = Object.assign([], this.state.bills);
+
+        for (var i = 0; i < bills.length; ++i) {
+            if (bills[i].billNum === bill.billNum) {
+                bills[i].selected = !(bills[i].selected)
+                break;
+            }
+        }
+
+        this.setState({ bills: bills });
+    }
+
+    onSplitClicked = () => {
+
+        this.props.fetchSplit(this.state.matter.matterUno)
+            .then(() => {
+                this.setState({ splitBillDetails: this.props.splitBillDetails, showSplitDetail: true }, this.test);
+            });
+
+    }
+
+    onRenderSplitDetailRows = () => {
+        if (this.state.splitBillDetails.length === 0) {
+            return (
+                <tr>
+                    <td colSpan="12">
+                        None found.
+                    </td>
+                </tr>
+            )
+        }
+
+        return this.state.splitBillDetails.map((detail) => {
+            const { clientCode, clientName, billGroupDesc, effectiveDate, expireDate, timePcnt, disbPcnt } = detail;
+            return (
+                <tr key={clientCode}>
+                    <td align="right">{clientCode}</td>
+                    <td>{clientName}</td>
+                    <td>{billGroupDesc}</td>
+                    <td align="right">{moment(effectiveDate).format('MM/DD/YYYY')}</td>
+                    <td align="right">{moment(expireDate).format('MM/DD/YYYY')}</td>
+                    <td align="right">{timePcnt}</td>
+                    <td align="right">{disbPcnt}</td>
+                </tr>
+            )
+        });
+    }
+
+    onRenderBillRows = () => {
+        if (this.state.bills.length === 0) {
+            return (
+                <tr>
+                    <td colSpan="12">
+                        No outstanding AR bills found for this client matter
+                    </td>
+                </tr>
+            )
+        }
+        return this.state.bills.map((bill) => {
+            const { billNum, billTkpr, billTkprName, clientCode, clientName, matterCode,
+                date, inCollections, period, totalAR,
+                tranTotalBilled, selected, type } = bill;
+            return (
+                <tr key={billNum}>
+                    <td><input type="checkbox" checked={selected} onChange={() => this.onBillSelectChange(bill)} /></td>
+                    <td align="right">{billNum}</td>
+                    <td>{
+                        type === 'S' ? <div><button className='btn btn-link' onClick={this.onSplitClicked}>S</button></div> : type
+                    }
+                    </td>
+                    <td align="right">{moment(date).format('MM/DD/YYYY')}</td>
+                    <td align="right">{period}</td>
+                    <td align="right">{billTkpr}</td>
+                    <td>{billTkprName}</td>
+                    <td align="right">{clientCode}</td>
+                    <td>{clientName}</td>
+                    <td align="right">{matterCode}</td>
+                    <td align="right">{tranTotalBilled}</td>
+                    <td align="right">{totalAR}</td>
+                    <td>{inCollections}</td>
+                </tr>
+            );
+        });
+    }
+
+    onCloseSplitDetail = () => {
+        this.setState({ showSplitDetail: false });
+    };
 
     render() {
 
@@ -183,32 +302,95 @@ class IoltaManaged extends React.Component {
                             balance={this.state.trust}
                             errors={this.state.errors}
                         />
-                        <div onChange={this.onTypeChange}>
+                        <div>
                             <div className="row" style={{ paddingTop: "20px" }}>
                                 <div className="col-md-12"><b>Reason for Check Request:</b></div>
                             </div>
                             <div className="row">
                                 <div className="col-md-4">
-                                    <input type="radio" value="client" name="type" /> Return of Trust Funds to Client
+                                    <input type="radio" value="client" name="type" onChange={this.onTypeChange}
+                                        checked={this.state.type === 'client'} /> Return of Trust Funds to Client
                             </div>
                                 <div className="col-md-4">
-                                    <input type="radio" value="miller" name="type" /> Payment to Miller Canfield (AR Bills)
+                                    <input type="radio" value="miller" name="type" onChange={this.onTypeChange}
+                                        checked={this.state.type === 'miller'} /> Payment to Miller Canfield (AR Bills)
                             </div>
                             </div>
                             <div className="row">
                                 <div className="col-md-4">
-                                    <input type="radio" value="settlement" name="type" /> Settlement Payment
+                                    <input type="radio" value="settlement" name="type" onChange={this.onTypeChange}
+                                        checked={this.state.type === 'settlement'} /> Settlement Payment
                             </div>
                                 <div className="col-md-4">
-                                    <input type="radio" value="vendor" name="type" /> Direct Payment to Vendor
+                                    <input type="radio" value="vendor" name="type" onChange={this.onTypeChange}
+                                        checked={this.state.type === 'vendor'} /> Direct Payment to Vendor
                             </div>
                             </div>
                             <div className="row">
                                 <div className="col-md-4">
-                                    <input type="radio" value="other" name="type" /> Other
+                                    <input type="radio" value="other" name="type" onChange={this.onTypeChange}
+                                        checked={this.state.type === 'other'} /> Other
                             </div>
                             </div>
                             {this.state.errors.type && <div className="alert alert-danger">{this.state.errors.type}</div>}
+                        </div>
+                        <div hidden={!this.state.showBills} style={{ paddingTop: "10px" }}>
+                            <label><b>Bills</b></label>
+                            <div style={{ height: "400px", overflow: "auto" }}>
+                                <table className="table">
+                                    <thead>
+                                        <tr>
+                                            <th style={{ position: "sticky", top: "0", left: "0", backgroundColor: 'lightgrey', textAlign: "left" }}>
+                                                Select
+                                            </th>
+                                            <th style={{ position: "sticky", top: "0", left: "0", backgroundColor: 'lightgrey', textAlign: "right" }}>
+                                                Bill #
+                                            </th>
+                                            <th style={{ position: "sticky", top: "0", left: "0", backgroundColor: 'lightgrey' }}>
+                                                Type
+                                            </th>
+                                            <th style={{ position: "sticky", top: "0", left: "0", backgroundColor: 'lightgrey', textAlign: "right" }}>
+                                                Date
+                                            </th>
+                                            <th style={{ position: "sticky", top: "0", left: "0", backgroundColor: 'lightgrey', textAlign: "right" }}>
+                                                Period
+                                            </th>
+                                            <th style={{ position: "sticky", top: "0", left: "0", backgroundColor: 'lightgrey', textAlign: "right" }}>
+                                                Bill Tkpr
+                                             </th>
+                                            <th style={{ position: "sticky", top: "0", left: "0", backgroundColor: 'lightgrey' }}>
+                                                Bill Tkpr Name
+                                            </th>
+                                            <th style={{ position: "sticky", top: "0", left: "0", backgroundColor: 'lightgrey', textAlign: "right" }}>
+                                                Client Code
+                                            </th>
+                                            <th style={{ position: "sticky", top: "0", left: "0", backgroundColor: 'lightgrey' }}>
+                                                Client Name
+                                            </th>
+                                            <th style={{ position: "sticky", top: "0", left: "0", backgroundColor: 'lightgrey', textAlign: "right" }}>
+                                                Matter Code
+                                            </th>
+                                            <th style={{ position: "sticky", top: "0", left: "0", backgroundColor: 'lightgrey', textAlign: "right" }}>
+                                                Total Billed
+                                            </th>
+                                            <th style={{ position: "sticky", top: "0", left: "0", backgroundColor: 'lightgrey', textAlign: "right" }}>
+                                                Total AR
+                                            </th>
+                                            <th style={{ position: "sticky", top: "0", left: "0", backgroundColor: 'lightgrey' }}>
+                                                Collections
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {this.onRenderBillRows()}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <SplitDetail
+                                    showSplitDetail={this.state.showSplitDetail}
+                                    onRenderSplitDetailRows={this.onRenderSplitDetailRows}
+                                    onCloseSplitDetail={this.onCloseSplitDetail}
+                            />
                         </div>
                         <div className="row" style={{ paddingTop: "20px" }}>
                             <div className="col-md-3">
@@ -248,7 +430,9 @@ const mapStateToProps = (state) => {
         client: state.client,
         offices: state.offices,
         depts: state.depts,
-        trust: state.trust
+        trust: state.trust,
+        bills: state.bills,
+        splitBillDetails: state.splitBillDetails
     }
 };
 
@@ -257,5 +441,8 @@ export default connect(mapStateToProps,
         fetchEmployee,
         fetchMatter,
         fetchClient,
-        fetchTrust
+        fetchTrust,
+        fetchBills,
+        submitCheckRequest,
+        fetchSplit
     })(IoltaManaged);

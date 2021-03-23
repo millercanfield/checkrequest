@@ -8,6 +8,8 @@ import officeReducer from './officeReducer';
 import deptReducer from './deptReducer';
 import retainerReducer from './retainerReducer';
 import trustReducer from './trustReducer';
+import billReducer from './billReducer';
+import splitBillDetailReducer from './splitBillDetailReducer';
 
 export default combineReducers({
     username: usernameReducer,
@@ -17,6 +19,8 @@ export default combineReducers({
     offices: officeReducer,
     retainer: retainerReducer,
     trust: trustReducer,
+    bills: billReducer,
+    splitBillDetails: splitBillDetailReducer,
     depts: deptReducer,
     ajaxCallsInProgress: ajaxStatusReducer
 });

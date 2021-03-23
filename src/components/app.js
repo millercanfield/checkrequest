@@ -29,6 +29,7 @@ class App extends React.Component {
         return (
             <Router>
                 <div style={this.props.loading ? { opacity: "0.25" } : { opacity: "1.0" }}>
+                    
                     <Header username={this.props.username} onMenuChange={this.onMenuChange} />
                     <table>
                         <tbody>

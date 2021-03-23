@@ -128,3 +128,57 @@ export const fetchTrust = (uno) => dispatch => {
             });
     });
 };
+
+export const fetchBills = (code, matterCode) => dispatch => {
+    return new Promise((resolve, reject) => {
+        dispatch({ type: types.BEGIN_AJAX_CALL });
+        aderant.get(`api/aderant/billsummary/${code}/${matterCode}`)
+            .then(response => {
+                dispatch({ type: types.FETCH_BILLS_SUCCESS, payload: response.data });
+                resolve();
+            })
+            .catch(err => {
+                console.log(err);
+                dispatch({ type: types.AJAX_CALL_ERROR });
+                reject();
+            });
+    });
+};
+
+export const submitCheckRequest = (type, formData) => dispatch => {
+
+    const data = {
+        type,
+        formData
+    };
+
+    return new Promise((resolve, reject) => {
+        dispatch({ type: types.BEGIN_AJAX_CALL });
+        aderant.post('api/request', data)
+            .then(response => {
+                dispatch({ type: types.SUBMIT_CHECKREQUEST_SUCCESS });
+                resolve();
+            })
+            .catch(err => {
+                console.log(err);
+                dispatch({ type: types.AJAX_CALL_ERROR });
+                reject();
+            });
+    });
+};
+
+export const fetchSplit = (matterUno) => dispatch => {
+    return new Promise((resolve, reject) => {
+        dispatch({ type: types.BEGIN_AJAX_CALL });
+        aderant.get(`api/aderant/splitbilldetail/${matterUno}`)
+            .then(response => {
+                dispatch({ type: types.FETCH_SPLIT_SUCCESS, payload: response.data });
+                resolve();
+            })
+            .catch(err => {
+                console.log(err);
+                dispatch({ type: types.AJAX_CALL_ERROR });
+                reject();
+            });
+    });
+};

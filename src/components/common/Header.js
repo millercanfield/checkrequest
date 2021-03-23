@@ -5,7 +5,7 @@ import { faQuestion, faInfo, faHome} from '@fortawesome/free-solid-svg-icons'
 
 const Header = ({ username}) => {
     return (
-        <div>
+        <div id="header">
             <div className="bottomPadding">
                 <img src="logo.png" alt="logo" className="logo" />
                 <span className="greeting">Welcome {username}!</span>
