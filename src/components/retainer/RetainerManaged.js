@@ -5,6 +5,7 @@ import {
     fetchEmployee,
     fetchMatter,
     fetchClient,
+    submitCheckRequest,
     fetchRetainer
 } from '../../actions';
 import { MatterSearch } from '../common/MatterSearch';
@@ -137,11 +138,16 @@ class RetainerManaged extends React.Component {
             return;
         }
 
-        //TODO: post to server for processing
-        console.log('state', this.state);
+        const data = JSON.stringify(this.state);
 
-        this.onBack();
-        toastr.success('Successfully submitted form to AP')
+        this.props.submitCheckRequest('retainer', data)
+            .then(() => {
+                this.onBack();
+                toastr.success('Successfully submitted form to AP')
+            })
+            .catch(error => {
+                toastr.error(error);
+            });
     }
 
     render() {
@@ -218,5 +224,6 @@ export default connect(mapStateToProps,
         fetchEmployee,
         fetchMatter,
         fetchClient,
+        submitCheckRequest,
         fetchRetainer
     })(RetainerManaged);

@@ -15,10 +15,6 @@ import { MatterDetails } from '../common/MatterDetails';
 import moment from 'moment';
 import SplitDetail from './SplitDetail';
 
-const initialPos = {
-    x: 400, y: 400
-};
-
 class IoltaManaged extends React.Component {
     state = {
         employee: {},
@@ -36,7 +32,8 @@ class IoltaManaged extends React.Component {
         bills: [],
         showBills: false,
         splitBillDetails: [],
-        showSplitDetail: false
+        balance: 0,
+        
     }
 
     test() {
@@ -57,14 +54,24 @@ class IoltaManaged extends React.Component {
                                     this.props.fetchTrust(this.props.matter.matterUno)
                                         .then(() => {
 
+                                            const formatter = new Intl.NumberFormat('en-US', {
+                                                style: 'currency',
+                                                currency: 'USD',
+                                              
+                                                // These options are needed to round to whole numbers if that's what you want.
+                                                //minimumFractionDigits: 0, // (this suffices for whole numbers, but will print 2500.10 as $2,500.1)
+                                                //maximumFractionDigits: 0, // (causes 2500.99 to be printed as $2,501)
+                                              });
+
                                             this.setState({
                                                 employee: this.props.employee,
                                                 matter: this.props.matter,
                                                 client: this.props.client,
                                                 selectedOffice: this.props.matter.offc,
                                                 selectedDept: this.props.matter.dept,
-                                                trust: this.props.trust,
+                                                trust: formatter.format(this.props.trust),
                                                 showError: false,
+                                                balance: this.props.trust
                                             }, this.isValid);
 
                                         });
@@ -105,9 +112,15 @@ class IoltaManaged extends React.Component {
             bills: [],
             showBills: false,
             splitBillDetails: [],
-            showSplitDetail: false
+            showSplitDetail: false,
+            balance: 0,
 
         });
+    }
+
+    updateSelectedValue = (value) => {
+        const balance = this.state.balance - value
+        this.setState({balance: balance});
     }
 
     onAdditionInfoChange = (event) => {
@@ -191,11 +204,43 @@ class IoltaManaged extends React.Component {
         for (var i = 0; i < bills.length; ++i) {
             if (bills[i].billNum === bill.billNum) {
                 bills[i].selected = !(bills[i].selected)
+                if(bills[i].selected){
+                    this.updateSelectedValue(bill.tranTotalBilled);
+                }
+                else{
+                    this.updateSelectedValue(bill.tranTotalBilled * -1);
+                }
                 break;
             }
         }
 
-        this.setState({ bills: bills });
+        this.setState({ bills: bills }, this.updateAmountToPay);
+    }
+
+    updateAmountToPay = () => {
+
+        const formatter = new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+          
+            // These options are needed to round to whole numbers if that's what you want.
+            //minimumFractionDigits: 0, // (this suffices for whole numbers, but will print 2500.10 as $2,500.1)
+            //maximumFractionDigits: 0, // (causes 2500.99 to be printed as $2,501)
+          });
+
+        let bills = Object.assign([], this.state.bills);
+        let total = 0;
+        for (var i = 0; i < bills.length; ++i) {
+            if(bills[i].selected){
+                total += bills[i].tranTotalBilled;
+            }
+        }
+
+        if(total > this.props.trust){
+            total = this.props.trust;
+        }
+
+        this.setState({amount: formatter.format(total)}, this.isValid);
     }
 
     onSplitClicked = () => {
@@ -245,12 +290,22 @@ class IoltaManaged extends React.Component {
             )
         }
         return this.state.bills.map((bill) => {
+
+            const formatter = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+              
+                // These options are needed to round to whole numbers if that's what you want.
+                //minimumFractionDigits: 0, // (this suffices for whole numbers, but will print 2500.10 as $2,500.1)
+                //maximumFractionDigits: 0, // (causes 2500.99 to be printed as $2,501)
+              });
+
             const { billNum, billTkpr, billTkprName, clientCode, clientName, matterCode,
                 date, inCollections, period, totalAR,
                 tranTotalBilled, selected, type } = bill;
             return (
                 <tr key={billNum}>
-                    <td><input type="checkbox" checked={selected} onChange={() => this.onBillSelectChange(bill)} /></td>
+                    <td><input type="checkbox" checked={selected} onChange={() => this.onBillSelectChange(bill)} disabled={!selected && this.state.balance <= 0 }/></td>
                     <td align="right">{billNum}</td>
                     <td>{
                         type === 'S' ? <div><button className='btn btn-link' onClick={this.onSplitClicked}>S</button></div> : type
@@ -263,8 +318,8 @@ class IoltaManaged extends React.Component {
                     <td align="right">{clientCode}</td>
                     <td>{clientName}</td>
                     <td align="right">{matterCode}</td>
-                    <td align="right">{tranTotalBilled}</td>
-                    <td align="right">{totalAR}</td>
+                    <td align="right">{formatter.format(tranTotalBilled)}</td>
+                    <td align="right">{formatter.format(totalAR)}</td>
                     <td>{inCollections}</td>
                 </tr>
             );
