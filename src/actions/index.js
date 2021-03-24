@@ -182,3 +182,19 @@ export const fetchSplit = (matterUno) => dispatch => {
             });
     });
 };
+
+export const fetchCheckRequest = (id) => dispatch => {
+    return new Promise((resolve, reject) => {
+        dispatch({ type: types.BEGIN_AJAX_CALL });
+        aderant.get(`api/request/${id}`)
+            .then(response => {
+                dispatch({ type: types.FETCH_CHECKREQUEST_SUCCESS});
+                resolve(response.data);
+            })
+            .catch(err => {
+                console.log(err);
+                dispatch({ type: types.AJAX_CALL_ERROR });
+                reject();
+            });
+    });
+};

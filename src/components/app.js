@@ -9,6 +9,8 @@ import Help from './help/Help';
 import HomePage from './home/HomePage';
 import IlotaManaged from './iolta/IoltaManaged';
 import RetainerManaged from './retainer/RetainerManaged';
+import APIoltaManaged from './ap/APIoltaManaged';
+import APRetainerManaged from './ap/APRetainerManaged';
 
 class App extends React.Component {
     state = {
@@ -43,6 +45,8 @@ class App extends React.Component {
                                     <div id="main">
                                         <Route exact path="/" component={HomePage} />
                                         <Route path="/retainer" component={RetainerManaged} />
+                                        <Route path="/ap/iolta/:id" component={APIoltaManaged} />
+                                        <Route path="/ap/retainer/:id" component={APRetainerManaged} />
                                         <Route path="/iolta" component={IlotaManaged} />
                                         <Route path="/about" component={About} />                         
                                         <Route path="/help" component={Help} />
