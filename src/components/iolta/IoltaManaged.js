@@ -8,7 +8,9 @@ import {
     fetchTrust,
     fetchBills,
     submitCheckRequest,
-    fetchSplit
+    fetchSplit,
+    fetchAttorney,
+    fetchClientArSummary
 } from '../../actions';
 import { MatterSearch } from '../common/MatterSearch';
 import { MatterDetails } from '../common/MatterDetails';
@@ -21,7 +23,9 @@ class IoltaManaged extends React.Component {
         matter: {},
         client: {},
         selectedDept: '',
+        billingAttorney: {},
         selectedOffice: '',
+        selectedAttorney: '',
         trust: '',
         showError: false,
         amount: '',
@@ -32,12 +36,19 @@ class IoltaManaged extends React.Component {
         bills: [],
         showBills: false,
         splitBillDetails: [],
+        showSplitDetail: false,
+        clientArSummary: [],
         balance: 0,
-        
+        showAllMatters: false
     }
 
     test() {
         console.log('state', this.state);
+    }
+
+    onIncludeAllMatters = () => {
+        const showAllMatters = !this.state.showAllMatters;
+        this.setState({ showAllMatters: showAllMatters });
     }
 
     onMatterSearch = (clientCode, matterCode) => {
@@ -51,28 +62,38 @@ class IoltaManaged extends React.Component {
                             this.props.fetchClient(this.props.matter.clientUno)
                                 .then(() => {
 
-                                    this.props.fetchTrust(this.props.matter.matterUno)
+                                    this.props.fetchAttorney(this.props.matter.billEmplUno)
                                         .then(() => {
 
-                                            const formatter = new Intl.NumberFormat('en-US', {
-                                                style: 'currency',
-                                                currency: 'USD',
-                                              
-                                                // These options are needed to round to whole numbers if that's what you want.
-                                                //minimumFractionDigits: 0, // (this suffices for whole numbers, but will print 2500.10 as $2,500.1)
-                                                //maximumFractionDigits: 0, // (causes 2500.99 to be printed as $2,501)
-                                              });
+                                            this.props.fetchClientArSummary(this.props.client.clientCode)
+                                                .then(() => {
+                                                    this.props.fetchTrust(this.props.matter.matterUno)
+                                                        .then(() => {
 
-                                            this.setState({
-                                                employee: this.props.employee,
-                                                matter: this.props.matter,
-                                                client: this.props.client,
-                                                selectedOffice: this.props.matter.offc,
-                                                selectedDept: this.props.matter.dept,
-                                                trust: formatter.format(this.props.trust),
-                                                showError: false,
-                                                balance: this.props.trust
-                                            }, this.isValid);
+                                                            const formatter = new Intl.NumberFormat('en-US', {
+                                                                style: 'currency',
+                                                                currency: 'USD',
+
+                                                                // These options are needed to round to whole numbers if that's what you want.
+                                                                //minimumFractionDigits: 0, // (this suffices for whole numbers, but will print 2500.10 as $2,500.1)
+                                                                //maximumFractionDigits: 0, // (causes 2500.99 to be printed as $2,501)
+                                                            });
+
+                                                            this.setState({
+                                                                employee: this.props.employee,
+                                                                matter: this.props.matter,
+                                                                client: this.props.client,
+                                                                selectedOffice: this.props.matter.offc,
+                                                                selectedDept: this.props.matter.dept,
+                                                                trust: formatter.format(this.props.trust),
+                                                                showError: false,
+                                                                balance: this.props.trust,
+                                                                billingAttorney: this.props.attorney,
+                                                                clientArSummary: this.props.clientArSummary
+                                                            }, this.isValid);
+
+                                                        });
+                                                });
 
                                         });
                                 });
@@ -95,13 +116,20 @@ class IoltaManaged extends React.Component {
         this.setState({ selectedDept: event.target.value }, this.isValid);
     }
 
+    onAttorneyChange = (event) => {
+
+        this.setState({ selectedAttorney: event.target.value }, this.isValid);
+    }
+
     onBack = () => {
         this.setState({
             employee: {},
             matter: {},
             client: {},
+            billingAttorney: {},
             selectedDept: '',
             selectedOffice: '',
+            selectedAttorney: '',
             trust: '',
             showError: false,
             amount: '',
@@ -113,14 +141,15 @@ class IoltaManaged extends React.Component {
             showBills: false,
             splitBillDetails: [],
             showSplitDetail: false,
+            clientArSummary: [],
             balance: 0,
-
+            showAllMatters: false
         });
     }
 
     updateSelectedValue = (value) => {
         const balance = this.state.balance - value
-        this.setState({balance: balance});
+        this.setState({ balance: balance });
     }
 
     onAdditionInfoChange = (event) => {
@@ -155,9 +184,44 @@ class IoltaManaged extends React.Component {
             errors.selectedOffice = 'Office is required.'
             valid = false;
         }
+        if (this.state.selectedAttorney === '') {
+            errors.selectedAttorney = 'Attorney is required.'
+            valid = false;
+        }
         if (this.state.type === '') {
             errors.type = 'Reason is required.'
             valid = false;
+        }
+
+        if (this.state.balance === 0) {
+            errors.notrustbalance = 'This matter does not have a trust balance.  If this client has another matter that has a trust balance, you should request a trust transfer to this matter first.';
+            valid = false;
+        }
+
+        if (this.state.type !== 'miller' && this.state.additionalInfo === '' && this.state.balance > 0) {
+            let ar = 0;
+            for (var i = 0; i < this.state.clientArSummary.length; ++i) {
+                ar += this.state.clientArSummary[i].totalArBalance;
+            }
+
+            if (ar > 0) {
+                errors.additionalInfo = 'This client has an AR balance.  Please explain why the firm should not use the trust balance to pay the AR balance before releasing any funds from the trust.'
+            }
+        }
+
+        if(this.state.type === 'miller'){
+            let selected = false;
+            for(var j = 0; j < this.state.bills.length; ++j){
+                if(this.state.bills[j].selected === true){
+                    selected = true;
+                    break; 
+                }
+            }
+
+            if(!selected){
+                errors.miller = 'You have to select at least one bill.';
+                valid = false;
+            }
         }
 
         this.setState({ errors: errors });
@@ -204,10 +268,10 @@ class IoltaManaged extends React.Component {
         for (var i = 0; i < bills.length; ++i) {
             if (bills[i].billNum === bill.billNum) {
                 bills[i].selected = !(bills[i].selected)
-                if(bills[i].selected){
+                if (bills[i].selected) {
                     this.updateSelectedValue(bill.tranTotalBilled);
                 }
-                else{
+                else {
                     this.updateSelectedValue(bill.tranTotalBilled * -1);
                 }
                 break;
@@ -222,25 +286,25 @@ class IoltaManaged extends React.Component {
         const formatter = new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: 'USD',
-          
+
             // These options are needed to round to whole numbers if that's what you want.
             //minimumFractionDigits: 0, // (this suffices for whole numbers, but will print 2500.10 as $2,500.1)
             //maximumFractionDigits: 0, // (causes 2500.99 to be printed as $2,501)
-          });
+        });
 
         let bills = Object.assign([], this.state.bills);
         let total = 0;
         for (var i = 0; i < bills.length; ++i) {
-            if(bills[i].selected){
+            if (bills[i].selected) {
                 total += bills[i].tranTotalBilled;
             }
         }
 
-        if(total > this.props.trust){
+        if (total > this.props.trust) {
             total = this.props.trust;
         }
 
-        this.setState({amount: formatter.format(total)}, this.isValid);
+        this.setState({ amount: formatter.format(total) }, this.isValid);
     }
 
     onSplitClicked = () => {
@@ -294,18 +358,18 @@ class IoltaManaged extends React.Component {
             const formatter = new Intl.NumberFormat('en-US', {
                 style: 'currency',
                 currency: 'USD',
-              
+
                 // These options are needed to round to whole numbers if that's what you want.
                 //minimumFractionDigits: 0, // (this suffices for whole numbers, but will print 2500.10 as $2,500.1)
                 //maximumFractionDigits: 0, // (causes 2500.99 to be printed as $2,501)
-              });
+            });
 
             const { billNum, billTkpr, billTkprName, clientCode, clientName, matterCode,
                 date, inCollections, period, totalAR,
                 tranTotalBilled, selected, type } = bill;
             return (
                 <tr key={billNum}>
-                    <td><input type="checkbox" checked={selected} onChange={() => this.onBillSelectChange(bill)} disabled={!selected && this.state.balance <= 0 }/></td>
+                    <td><input type="checkbox" checked={selected} onChange={() => this.onBillSelectChange(bill)} disabled={!selected && this.state.balance <= 0} /></td>
                     <td align="right">{billNum}</td>
                     <td>{
                         type === 'S' ? <div><button className='btn btn-link' onClick={this.onSplitClicked}>S</button></div> : type
@@ -348,14 +412,21 @@ class IoltaManaged extends React.Component {
                             client={this.state.client}
                             matter={this.state.matter}
                             offices={this.props.offices}
+                            employees={this.props.employees}
                             depts={this.props.depts}
                             selectedOffice={this.state.selectedOffice}
                             selectedDept={this.state.selectedDept}
+                            selectedAttorney={this.state.selectedAttorney}
+                            onAttorneyChange={this.onAttorneyChange}
                             onOfficeChange={this.onOfficeChange}
                             onDeptChange={this.onDeptChange}
                             isRetainerType={false}
                             balance={this.state.trust}
                             errors={this.state.errors}
+                            billingAttorney={this.state.billingAttorney}
+                            clientArSummary={this.state.clientArSummary}
+                            showAllMatters={this.state.showAllMatters}
+                            onIncludeAllMatters={this.onIncludeAllMatters}
                         />
                         <div>
                             <div className="row" style={{ paddingTop: "20px" }}>
@@ -440,11 +511,12 @@ class IoltaManaged extends React.Component {
                                         {this.onRenderBillRows()}
                                     </tbody>
                                 </table>
+                                {this.state.errors.miller && <div className="alert alert-danger">{this.state.errors.miller}</div>}
                             </div>
                             <SplitDetail
-                                    showSplitDetail={this.state.showSplitDetail}
-                                    onRenderSplitDetailRows={this.onRenderSplitDetailRows}
-                                    onCloseSplitDetail={this.onCloseSplitDetail}
+                                showSplitDetail={this.state.showSplitDetail}
+                                onRenderSplitDetailRows={this.onRenderSplitDetailRows}
+                                onCloseSplitDetail={this.onCloseSplitDetail}
                             />
                         </div>
                         <div className="row" style={{ paddingTop: "20px" }}>
@@ -464,7 +536,9 @@ class IoltaManaged extends React.Component {
                                 <label><b>Additional Information (if needed):</b></label>
                                 <textarea className="form-control" value={this.state.additionalInfo} onChange={this.onAdditionInfoChange} />
                             </div>
+                            {this.state.errors.additionalInfo && <div className="alert alert-danger">{this.state.errors.additionalInfo}</div>}
                         </div>
+                        {this.state.errors.notrustbalance && <div className="alert alert-danger">{this.state.errors.notrustbalance}</div>}
                         <div style={{ paddingTop: "20px" }}>
                             <button className="btn btn-secondary" onClick={this.onBack} style={{ float: "right" }}>Cancel</button>
                             <button className="btn btn-primary" onClick={this.onSubmit}>Submit</button>
@@ -487,7 +561,10 @@ const mapStateToProps = (state) => {
         depts: state.depts,
         trust: state.trust,
         bills: state.bills,
-        splitBillDetails: state.splitBillDetails
+        splitBillDetails: state.splitBillDetails,
+        clientArSummary: state.clientArSummary,
+        employees: state.employees,
+        attorney: state.attorney
     }
 };
 
@@ -499,5 +576,7 @@ export default connect(mapStateToProps,
         fetchTrust,
         fetchBills,
         submitCheckRequest,
-        fetchSplit
+        fetchSplit,
+        fetchAttorney,
+        fetchClientArSummary
     })(IoltaManaged);
