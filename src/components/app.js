@@ -1,7 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { HashRouter as Router, Route } from 'react-router-dom';
-import { fetchUsername, fetchDepts, fetchOffices } from '../actions';
+import { fetchUsername, fetchDepts, fetchOffices, fetchEmployees } from '../actions';
 import Header from './common/Header';
 import Side from './common/Side';
 import About from './about/About';
@@ -21,6 +21,7 @@ class App extends React.Component {
         this.props.fetchUsername();
         this.props.fetchDepts();
         this.props.fetchOffices();
+        this.props.fetchEmployees();
     }
 
     onMenuChange = (name) => {
@@ -69,4 +70,4 @@ const mapStateToProps = (state) => {
     };
 }
 
-export default connect(mapStateToProps, { fetchUsername, fetchDepts, fetchOffices })(App);
+export default connect(mapStateToProps, { fetchUsername, fetchDepts, fetchOffices, fetchEmployees })(App);

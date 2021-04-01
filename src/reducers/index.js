@@ -10,10 +10,15 @@ import retainerReducer from './retainerReducer';
 import trustReducer from './trustReducer';
 import billReducer from './billReducer';
 import splitBillDetailReducer from './splitBillDetailReducer';
+import employeesReducer from './employeesReducer';
+import attorneyReducer from './attorneyReducer';
+import clientArSummaryReducer from './clientArSummaryReducer';
 
 export default combineReducers({
     username: usernameReducer,
     employee: employeeReducer,
+    attorney: attorneyReducer,
+    employees: employeesReducer,
     matter: matterReducer,
     client: clientReducer,
     offices: officeReducer,
@@ -21,6 +26,7 @@ export default combineReducers({
     trust: trustReducer,
     bills: billReducer,
     splitBillDetails: splitBillDetailReducer,
+    clientArSummary: clientArSummaryReducer,
     depts: deptReducer,
     ajaxCallsInProgress: ajaxStatusReducer
 });

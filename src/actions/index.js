@@ -198,3 +198,51 @@ export const fetchCheckRequest = (id) => dispatch => {
             });
     });
 };
+
+export const fetchEmployees = () => dispatch => {
+    return new Promise((resolve, reject) => {
+        dispatch({ type: types.BEGIN_AJAX_CALL });
+        aderant.get('api/aderant/employees')
+            .then(response => {
+                dispatch({ type: types.FETCH_EMPLOYEES_SUCCESS, payload: response.data });
+                resolve();
+            })
+            .catch(err => {
+                console.log(err);
+                dispatch({ type: types.AJAX_CALL_ERROR });
+                reject();
+            });
+    });
+};
+
+export const fetchAttorney = (uno) => dispatch => {
+    return new Promise((resolve, reject) => {
+        dispatch({ type: types.BEGIN_AJAX_CALL });
+        aderant.get('api/aderant/attorney/' + uno)
+            .then(response => {
+                dispatch({ type: types.FETCH_ATTORNEY_SUCCESS, payload: response.data });
+                resolve();
+            })
+            .catch(err => {
+                console.log(err);
+                dispatch({ type: types.AJAX_CALL_ERROR });
+                reject();
+            });
+    });
+};
+
+export const fetchClientArSummary = (clientCode) => dispatch => {
+    return new Promise((resolve, reject) => {
+        dispatch({ type: types.BEGIN_AJAX_CALL });
+        aderant.get(`api/aderant/clientarsummary/${clientCode}`)
+            .then(response => {
+                dispatch({ type: types.FETCH_CLIENT_AR_SUMMARY_SUCCESS, payload: response.data });
+                resolve();
+            })
+            .catch(err => {
+                console.log(err);
+                dispatch({ type: types.AJAX_CALL_ERROR });
+                reject();
+            });
+    });
+};
