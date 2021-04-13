@@ -2,18 +2,13 @@ import React from 'react';
 import toastr from 'toastr';
 import { connect } from 'react-redux';
 import {
-    fetchEmployee,
-    fetchMatter,
-    fetchClient,
     submitCheckRequest,
     fetchRetainer,
-    fetchAttorney,
     fetchClientArSummary
 } from '../../actions';
-import { MatterSearch } from '../common/MatterSearch';
 import { MatterDetails } from '../common/MatterDetails';
 
-class RetainerManaged extends React.Component {
+class SendBackRetainerManaged extends React.Component {
     state = {
         employee: {},
         matter: {},
@@ -33,54 +28,33 @@ class RetainerManaged extends React.Component {
         billingAttorney: {}
     }
 
+    componentDidUpdate(prevProps) {
+        if(prevProps.checkrequest !== this.props.checkrequest){
+           
+            this.setState({
+                ...this.props.checkrequest
+            }, this.getAR);
+        }
+    }
+
+    getAR = () => {
+        this.props.fetchClientArSummary(this.state.client.clientCode)
+        .then(() => {
+            this.props.fetchRetainer(this.state.matter.matterUno)
+                .then(() => {
+
+                    this.setState({
+                        retainer: this.props.retainer,
+                        clientArSummary: this.props.clientArSummary
+                        });
+
+                });
+        });
+    };
+
     test() {
         //console.log('state', this.state);
     }
-
-    onMatterSearch = (clientCode, matterCode) => {
-
-        this.props.fetchMatter(clientCode, matterCode)
-            .then(() => {
-
-                if (this.props.matter.clientUno) {
-                    this.props.fetchEmployee(this.props.username)
-                        .then(() => {
-                            this.props.fetchClient(this.props.matter.clientUno)
-                                .then(() => {
-
-                                    this.props.fetchAttorney(this.props.matter.billEmplUno)
-                                        .then(() => {
-                                            this.props.fetchClientArSummary(this.props.client.clientCode)
-                                                .then(() => {
-                                                    this.props.fetchRetainer(this.props.matter.matterUno)
-                                                        .then(() => {
-
-                                                            this.setState({
-                                                                employee: this.props.employee,
-                                                                matter: this.props.matter,
-                                                                client: this.props.client,
-                                                                selectedOffice: this.props.matter.offc,
-                                                                selectedDept: this.props.matter.dept,
-                                                                retainer: this.props.retainer,
-                                                                showError: false,
-                                                                billingAttorney: this.props.attorney,
-                                                                clientArSummary: this.props.clientArSummary
-                                                                }, this.isValid
-                                                            );
-
-                                                        });
-                                                });
-                                        });
-                                });
-                        });
-                }
-                else {
-                    this.setState({ showError: true });
-                }
-
-            });
-
-    };
 
     onOfficeChange = (event) => {
         console.log(event.target.value);
@@ -101,27 +75,6 @@ class RetainerManaged extends React.Component {
     onIncludeAllMatters = () => {
         const showAllMatters = !this.state.showAllMatters;
         this.setState({ showAllMatters: showAllMatters });
-    }
-
-    onBack = () => {
-        this.setState({
-            employee: {},
-            matter: {},
-            client: {},
-            selectedDept: '',
-            selectedOffice: '',
-            retainer: '',
-            showError: false,
-            amount: '',
-            payableTo: '',
-            additionalInfo: '',
-            errors: {},
-            clientArSummary: [],
-            balance: 0,
-            showAllMatters: false,
-            billingAttorney: {}
-
-        });
     }
 
     onAdditionInfoChange = (event) => {
@@ -197,11 +150,10 @@ class RetainerManaged extends React.Component {
 
         this.props.submitCheckRequest(params)
             .then(() => {
-                this.onBack();
                 toastr.success('Successfully submitted form to Client Accounting Manager')
             })
             .catch(error => {
-                toastr.error(error);
+                toastr.error('Error submitting form to Client Accounting Manager.');
             });
     }
 
@@ -212,12 +164,6 @@ class RetainerManaged extends React.Component {
                 <h3>Check Request</h3>
                 <div style={{ padding: "20px" }}>
                     <h4>Unapplied/Retainer Balance Refunds</h4>
-                    <div style={{ paddingTop: "20px" }} hidden={this.state.matter.matterCode}>
-                        <MatterSearch onMatterSearch={this.onMatterSearch} />
-                        <div style={{ color: 'red' }} hidden={!this.state.showError}>
-                            Not found. NOTE: Leading zeros are required (for example 00001).
-                        </div>
-                    </div>
                     <div hidden={!this.state.matter.matterCode} style={{ paddingTop: "20px" }}>
                         <MatterDetails
                             client={this.state.client}
@@ -260,7 +206,6 @@ class RetainerManaged extends React.Component {
                         </div>
                         {this.state.errors.noretainerbalance && <div className="alert alert-danger">{this.state.errors.noretainerbalance}</div>}
                         <div style={{ paddingTop: "20px" }}>
-                            <button className="btn btn-secondary" onClick={this.onBack} style={{ float: "right" }}>Cancel</button>
                             <button className="btn btn-primary" onClick={this.onSubmit}>Submit</button>
                         </div>
                     </div>
@@ -273,26 +218,19 @@ class RetainerManaged extends React.Component {
 
 const mapStateToProps = (state) => {
     return {
-        employee: state.employee,
         username: state.username,
-        matter: state.matter,
-        client: state.client,
         offices: state.offices,
         depts: state.depts,
         retainer: state.retainer,
         clientArSummary: state.clientArSummary,
         employees: state.employees,
-        attorney: state.attorney
+        
     }
 };
 
 export default connect(mapStateToProps,
     {
-        fetchEmployee,
-        fetchMatter,
-        fetchClient,
         submitCheckRequest,
         fetchRetainer,
-        fetchAttorney,
         fetchClientArSummary
-    })(RetainerManaged);
+    })(SendBackRetainerManaged);

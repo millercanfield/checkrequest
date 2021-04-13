@@ -2,22 +2,17 @@ import React from 'react';
 import toastr from 'toastr';
 import { connect } from 'react-redux';
 import {
-    fetchEmployee,
-    fetchMatter,
-    fetchClient,
     fetchTrust,
     fetchBills,
-    submitCheckRequest,
     fetchSplit,
-    fetchAttorney,
-    fetchClientArSummary
+    fetchClientArSummary,
+    submitCheckRequest
 } from '../../actions';
-import { MatterSearch } from '../common/MatterSearch';
 import { MatterDetails } from '../common/MatterDetails';
 import moment from 'moment';
-import SplitDetail from './SplitDetail';
+import SplitDetail from '../iolta/SplitDetail';
 
-class IoltaManaged extends React.Component {
+class SendBackIoltaManaged extends React.Component {
     state = {
         employee: {},
         matter: {},
@@ -42,6 +37,41 @@ class IoltaManaged extends React.Component {
         showAllMatters: false
     }
 
+    componentDidUpdate(prevProps) {
+
+        if (prevProps.checkrequest !== this.props.checkrequest) {
+
+            this.setState({
+                ...this.props.checkrequest
+            }, this.getAR);
+        }
+    }
+
+    getAR() {
+        this.props.fetchClientArSummary(this.state.client.clientCode)
+            .then(() => {
+                this.props.fetchTrust(this.state.matter.matterUno)
+                    .then(() => {
+
+                        const formatter = new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: 'USD',
+
+                            // These options are needed to round to whole numbers if that's what you want.
+                            //minimumFractionDigits: 0, // (this suffices for whole numbers, but will print 2500.10 as $2,500.1)
+                            //maximumFractionDigits: 0, // (causes 2500.99 to be printed as $2,501)
+                        });
+
+                        this.setState({
+                            trust: formatter.format(this.props.trust),
+                            balance: this.props.trust,
+                            clientArSummary: this.props.clientArSummary
+                        });
+
+                    });
+            });
+    }
+
     test() {
         console.log('state', this.state);
     }
@@ -50,62 +80,6 @@ class IoltaManaged extends React.Component {
         const showAllMatters = !this.state.showAllMatters;
         this.setState({ showAllMatters: showAllMatters });
     }
-
-    onMatterSearch = (clientCode, matterCode) => {
-
-        this.props.fetchMatter(clientCode, matterCode)
-            .then(() => {
-
-                if (this.props.matter.clientUno) {
-                    this.props.fetchEmployee(this.props.username)
-                        .then(() => {
-                            this.props.fetchClient(this.props.matter.clientUno)
-                                .then(() => {
-
-                                    this.props.fetchAttorney(this.props.matter.billEmplUno)
-                                        .then(() => {
-
-                                            this.props.fetchClientArSummary(this.props.client.clientCode)
-                                                .then(() => {
-                                                    this.props.fetchTrust(this.props.matter.matterUno)
-                                                        .then(() => {
-
-                                                            const formatter = new Intl.NumberFormat('en-US', {
-                                                                style: 'currency',
-                                                                currency: 'USD',
-
-                                                                // These options are needed to round to whole numbers if that's what you want.
-                                                                //minimumFractionDigits: 0, // (this suffices for whole numbers, but will print 2500.10 as $2,500.1)
-                                                                //maximumFractionDigits: 0, // (causes 2500.99 to be printed as $2,501)
-                                                            });
-
-                                                            this.setState({
-                                                                employee: this.props.employee,
-                                                                matter: this.props.matter,
-                                                                client: this.props.client,
-                                                                selectedOffice: this.props.matter.offc,
-                                                                selectedDept: this.props.matter.dept,
-                                                                trust: formatter.format(this.props.trust),
-                                                                showError: false,
-                                                                balance: this.props.trust,
-                                                                billingAttorney: this.props.attorney,
-                                                                clientArSummary: this.props.clientArSummary
-                                                            }, this.isValid);
-
-                                                        });
-                                                });
-
-                                        });
-                                });
-                        });
-                }
-                else {
-                    this.setState({ showError: true });
-                }
-
-            });
-
-    };
 
     onOfficeChange = (event) => {
         this.setState({ selectedOffice: event.target.value }, this.isValid);
@@ -119,32 +93,6 @@ class IoltaManaged extends React.Component {
     onAttorneyChange = (event) => {
 
         this.setState({ selectedAttorney: event.target.value }, this.isValid);
-    }
-
-    onBack = () => {
-        this.setState({
-            employee: {},
-            matter: {},
-            client: {},
-            billingAttorney: {},
-            selectedDept: '',
-            selectedOffice: '',
-            selectedAttorney: '',
-            trust: '',
-            showError: false,
-            amount: '',
-            payableTo: '',
-            additionalInfo: '',
-            errors: {},
-            type: 'settlement',
-            bills: [],
-            showBills: false,
-            splitBillDetails: [],
-            showSplitDetail: false,
-            clientArSummary: [],
-            balance: 0,
-            showAllMatters: false
-        });
     }
 
     updateSelectedValue = (value) => {
@@ -209,16 +157,16 @@ class IoltaManaged extends React.Component {
             }
         }
 
-        if(this.state.type === 'miller'){
+        if (this.state.type === 'miller') {
             let selected = false;
-            for(var j = 0; j < this.state.bills.length; ++j){
-                if(this.state.bills[j].selected === true){
+            for (var j = 0; j < this.state.bills.length; ++j) {
+                if (this.state.bills[j].selected === true) {
                     selected = true;
-                    break; 
+                    break;
                 }
             }
 
-            if(!selected){
+            if (!selected) {
                 errors.miller = 'You have to select at least one bill.';
                 valid = false;
             }
@@ -264,12 +212,12 @@ class IoltaManaged extends React.Component {
 
         this.props.submitCheckRequest(params)
             .then(() => {
-                this.onBack();
                 toastr.success('Successfully submitted form to Client Accounting Manager')
             })
             .catch(error => {
-                toastr.error(error);
+                toastr.error('Error submitting form to Client Accounting Manager');
             });
+            
     }
 
     onBillSelectChange = (bill) => {
@@ -411,12 +359,6 @@ class IoltaManaged extends React.Component {
                 <h3>Check Request</h3>
                 <div style={{ padding: "20px" }}>
                     <h4>IOLTA</h4>
-                    <div style={{ paddingTop: "20px" }} hidden={this.state.matter.matterCode}>
-                        <MatterSearch onMatterSearch={this.onMatterSearch} />
-                        <div style={{ color: 'red' }} hidden={!this.state.showError}>
-                            Not found. NOTE: Leading zeros are required (for example 00001).
-                        </div>
-                    </div>
                     <div hidden={!this.state.matter.matterCode} style={{ paddingTop: "20px" }}>
                         <MatterDetails
                             client={this.state.client}
@@ -550,7 +492,6 @@ class IoltaManaged extends React.Component {
                         </div>
                         {this.state.errors.notrustbalance && <div className="alert alert-danger">{this.state.errors.notrustbalance}</div>}
                         <div style={{ paddingTop: "20px" }}>
-                            <button className="btn btn-secondary" onClick={this.onBack} style={{ float: "right" }}>Cancel</button>
                             <button className="btn btn-primary" onClick={this.onSubmit}>Submit</button>
                         </div>
                     </div>
@@ -580,13 +521,9 @@ const mapStateToProps = (state) => {
 
 export default connect(mapStateToProps,
     {
-        fetchEmployee,
-        fetchMatter,
-        fetchClient,
         fetchTrust,
         fetchBills,
-        submitCheckRequest,
         fetchSplit,
-        fetchAttorney,
-        fetchClientArSummary
-    })(IoltaManaged);
+        fetchClientArSummary,
+        submitCheckRequest
+    })(SendBackIoltaManaged);

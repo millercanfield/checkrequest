@@ -13,6 +13,16 @@ export const MatterDetails = ({ client, matter, isRetainerType,
         //maximumFractionDigits: 0, // (causes 2500.99 to be printed as $2,501)
     });
 
+    const getClientTotalAR = () => {
+        let ar = 0;
+
+        for(var i = 0; i < clientArSummary.length; ++i){
+            ar += clientArSummary[i].totalArBalance;
+        }
+
+        return formatter.format(ar);
+    };
+
     const getBalanceRows = () => {
         if (!showAllMatters) {
             const ar = clientArSummary.find(e => e.matterCode === matter.matterCode);
@@ -106,6 +116,9 @@ export const MatterDetails = ({ client, matter, isRetainerType,
                                 {getBalanceRows()}
                             </tbody>
                         </table>
+                    </div>
+                    <div style={{paddingTop: "15px"}}>
+                        <label><b>Total Client AR:</b>&nbsp;{getClientTotalAR()}</label>
                     </div>
                 </div>
             </div>

@@ -9,8 +9,11 @@ import Help from './help/Help';
 import HomePage from './home/HomePage';
 import IlotaManaged from './iolta/IoltaManaged';
 import RetainerManaged from './retainer/RetainerManaged';
-import APIoltaManaged from './ap/APIoltaManaged';
-import APRetainerManaged from './ap/APRetainerManaged';
+import ARApprovalManaged from './approvals/ARApprovalManaged';
+import SendBackManaged from './sendback/SendBackManaged';
+import LeaderApprovalManaged from './approvals/LeaderApprovalManaged';
+import CfoApprovalManaged from './approvals/CfoApprovalManaged';
+import ApManaged from './ap/APManaged';
 
 class App extends React.Component {
     state = {
@@ -46,8 +49,11 @@ class App extends React.Component {
                                     <div id="main">
                                         <Route exact path="/" component={HomePage} />
                                         <Route path="/retainer" component={RetainerManaged} />
-                                        <Route path="/ap/iolta/:id" component={APIoltaManaged} />
-                                        <Route path="/ap/retainer/:id" component={APRetainerManaged} />
+                                        <Route path="/ar/:id" component={ARApprovalManaged} />
+                                        <Route path="/leader/:id" component={LeaderApprovalManaged} />
+                                        <Route path="/cfo/:id" component={CfoApprovalManaged} />
+                                        <Route path="/ap/:id" component={ApManaged} />
+                                        <Route path="/sendback/:id" component={SendBackManaged} />
                                         <Route path="/iolta" component={IlotaManaged} />
                                         <Route path="/about" component={About} />                         
                                         <Route path="/help" component={Help} />
