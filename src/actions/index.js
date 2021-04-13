@@ -145,16 +145,11 @@ export const fetchBills = (code, matterCode) => dispatch => {
     });
 };
 
-export const submitCheckRequest = (type, formData) => dispatch => {
-
-    const data = {
-        type,
-        formData
-    };
+export const submitCheckRequest = (params) => dispatch => {
 
     return new Promise((resolve, reject) => {
         dispatch({ type: types.BEGIN_AJAX_CALL });
-        aderant.post('api/request', data)
+        aderant.post('api/request', params)
             .then(response => {
                 dispatch({ type: types.SUBMIT_CHECKREQUEST_SUCCESS });
                 resolve();
@@ -237,6 +232,74 @@ export const fetchClientArSummary = (clientCode) => dispatch => {
         aderant.get(`api/aderant/clientarsummary/${clientCode}`)
             .then(response => {
                 dispatch({ type: types.FETCH_CLIENT_AR_SUMMARY_SUCCESS, payload: response.data });
+                resolve();
+            })
+            .catch(err => {
+                console.log(err);
+                dispatch({ type: types.AJAX_CALL_ERROR });
+                reject();
+            });
+    });
+};
+
+export const submitARResponse = (params) => dispatch => {
+
+    return new Promise((resolve, reject) => {
+        dispatch({ type: types.BEGIN_AJAX_CALL });
+        aderant.post('api/request/arresponse', params)
+            .then(response => {
+                dispatch({ type: types.SUBMIT_ARRESPONSE_SUCCESS });
+                resolve();
+            })
+            .catch(err => {
+                console.log(err);
+                dispatch({ type: types.AJAX_CALL_ERROR });
+                reject();
+            });
+    });
+};
+
+export const submitLeaderResponse = (params) => dispatch => {
+
+    return new Promise((resolve, reject) => {
+        dispatch({ type: types.BEGIN_AJAX_CALL });
+        aderant.post('api/request/leaderresponse', params)
+            .then(response => {
+                dispatch({ type: types.SUBMIT_LEADERRESPONSE_SUCCESS });
+                resolve();
+            })
+            .catch(err => {
+                console.log(err);
+                dispatch({ type: types.AJAX_CALL_ERROR });
+                reject();
+            });
+    });
+};
+
+export const submitCfoResponse = (params) => dispatch => {
+
+    return new Promise((resolve, reject) => {
+        dispatch({ type: types.BEGIN_AJAX_CALL });
+        aderant.post('api/request/cforesponse', params)
+            .then(response => {
+                dispatch({ type: types.SUBMIT_CFORESPONSE_SUCCESS });
+                resolve();
+            })
+            .catch(err => {
+                console.log(err);
+                dispatch({ type: types.AJAX_CALL_ERROR });
+                reject();
+            });
+    });
+};
+
+export const submitApResponse = (params) => dispatch => {
+
+    return new Promise((resolve, reject) => {
+        dispatch({ type: types.BEGIN_AJAX_CALL });
+        aderant.post('api/request/apresponse', params)
+            .then(response => {
+                dispatch({ type: types.SUBMIT_APRESPONSE_SUCCESS });
                 resolve();
             })
             .catch(err => {
